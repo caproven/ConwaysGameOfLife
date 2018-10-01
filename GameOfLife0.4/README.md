@@ -25,10 +25,10 @@ Exclusively using the latest in hands-on debugging techniques (I spam click ever
 Version 0.4
 
 Added
-- N/A
+- Read and write functionality! Everything is through .txt files (who doesn't love a nice 2d array in a text file?).
 
 Fixed
 - N/A
 
 Other
-- N/A
+- Need to add verification of contents of input files. Honestly don't know how the program will act if any chars besides '0' and '1' are read.

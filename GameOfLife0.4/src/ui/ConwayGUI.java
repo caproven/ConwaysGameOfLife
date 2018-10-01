@@ -5,10 +5,15 @@ import java.awt.Container;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.Scanner;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
@@ -16,19 +21,20 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
 /**
- * Separate Thread to continually update simulation. 
+ * Separate Thread to continually update simulation.
  * @author caproven
  */
 class IterateSimulation extends Thread {
+    @Override
     public void run() {
         while (true) {
             if (ConwayGUI.doLoop) {
-                //System.out.println("<Run iteration>");
+                // System.out.println("<Run iteration>");
                 ConwayGUI.updateGrid();
                 ConwayGUI.drawSimulation();
             }
             try {
-                Thread.sleep(100);
+                Thread.sleep(300);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -154,6 +160,18 @@ public class ConwayGUI extends JFrame {
             }
         });
         pnlOptions.add(btnReadFile);
+        btnReadFile.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    readFile(getFileName(true));
+                } catch (FileNotFoundException e1) {
+                    e1.printStackTrace();
+                } catch (IllegalStateException ise) {
+                    // do nothing
+                }
+                drawSimulation();
+            }
+        });
         pnlOptions.add(btnStop);
         btnStop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -161,6 +179,18 @@ public class ConwayGUI extends JFrame {
             }
         });
         pnlOptions.add(btnWriteFile);
+        btnWriteFile.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    writeFile(getFileName(false));
+                } catch (FileNotFoundException e1) {
+                    e1.printStackTrace();
+                } catch (IllegalStateException ise) {
+                    // do nothing
+                }
+                drawSimulation();
+            }
+        });
 
         // Sets borders around the JPanels to make them look a lot cooler than they really are.
         Border lowerEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
@@ -277,6 +307,116 @@ public class ConwayGUI extends JFrame {
             aliveNeighbors++;
         }
         return aliveNeighbors;
+    }
+
+    /**
+     * Returns a file name generated through interactions with a {@link JFileChooser} object.
+     * @param chooserType true if open, false if save
+     * @return the file name selected through {@link JFileChooser}
+     * @author Sarah Heckman
+     */
+    private String getFileName(boolean chooserType) throws FileNotFoundException {
+        JFileChooser fc = new JFileChooser("./"); // Open JFileChoose to current working directory
+        fc.setApproveButtonText("Select");
+        int returnVal = Integer.MIN_VALUE;
+        if (chooserType) {
+            fc.setDialogTitle("Load Course Catalog");
+            returnVal = fc.showOpenDialog(this);
+        } else {
+            fc.setDialogTitle("Save Schedule");
+            returnVal = fc.showSaveDialog(this);
+        }
+        if (returnVal != JFileChooser.APPROVE_OPTION) {
+            // Error or user canceled, either way no file name.
+            throw new IllegalStateException();
+        }
+        File catalogFile = fc.getSelectedFile();
+        return catalogFile.getAbsolutePath();
+    }
+
+    /**
+     * Determines if fileName is a valid program to be read by the program. Checks that
+     * columns and rows are the same as the programs current setting (this will be reworked
+     * later to allow resizing)
+     * @param fileName Name of file to be read and verified
+     * @return True if file is valid, else false
+     * @throws FileNotFoundException if file cannot be read properly or file cannot be located
+     */
+    private boolean isValidReadFile(String fileName) throws FileNotFoundException {
+        File file = new File(fileName);
+        Scanner fileScan = new Scanner(file);
+
+        int rows = 0;
+        while (fileScan.hasNextLine()) {
+            // Scanner lineScan = new Scanner(fileScan.nextLine());
+            if (fileScan.nextLine().length() == SIM_COLS) {
+                rows++;
+            } else { // If even a single row is the wrong length, return false
+                fileScan.close();
+                return false;
+            }
+        }
+        // At this point, we know the columns are correct. Have to check rows
+        if (rows == SIM_ROWS) {
+            fileScan.close();
+            return true;
+        } else {
+            fileScan.close();
+            return false;
+        }
+    }
+
+    /**
+     * Reads the simulation state from a file, where the file contents represent the cellState
+     * as 1/0 values
+     * @param fileName Name of file to be read from
+     * @throws FileNotFoundException if file cannot be read properly or file cannot be located
+     */
+    private void readFile(String fileName) throws FileNotFoundException {
+        // Should only run if file is determined to be correctly formatted
+        if (isValidReadFile(fileName)) {
+            File file = new File(fileName);
+            Scanner fromFile = new Scanner(file);
+            int rows = 1; // Had to start at 1 so cellState setting could be easy to read
+            while (fromFile.hasNextLine()) {
+                String line = fromFile.nextLine();
+                for (int i = 1; i < line.length() - 1; i++) {
+                    if (line.charAt(i) == '1') {
+                        cellState[rows][i] = true;
+                    } else {
+                        cellState[rows][i] = false;
+                    }
+                }
+                rows++;
+            }
+            fromFile.close();
+        }
+    }
+
+    /**
+     * Writes the current simulation state to a file, where the file contents represent the
+     * cellState as 1/0 values
+     * @param fileName Name of file the state should be written to
+     * @throws FileNotFoundException if file cannot be written
+     */
+    private void writeFile(String fileName) throws FileNotFoundException {
+        PrintStream toFile = new PrintStream(new File(fileName));
+        // Traverses the cellState array, printing out 1/0 (True/False) to the file.
+        // For loops take into consideration the "border" of cells we have that lie just off the screen
+        for (int i = 1; i < cellGrid.length - 1; i++) {
+            for (int j = 1; j < cellGrid[1].length - 1; j++) {
+                if (cellState[i][j]) {
+                    toFile.print("1");
+                } else {
+                    toFile.print("0");
+                }
+            }
+            // only want to go to a new line as long as line is not the last line
+            if (i < cellGrid.length - 2) {
+                toFile.print("\n");
+            }
+        }
+        toFile.close();
     }
 
     /**
