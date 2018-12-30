@@ -1,5 +1,10 @@
 package model;
 
+import java.io.IOException;
+
+import util.LifeReader;
+import util.LifeWriter;
+
 /**
  * Model for the Game of Life simulation. Holds states of the simulation, available to the
  * GUI.
@@ -115,5 +120,25 @@ public class SimulationModel {
         if (cellStateInc[yP1][xP1]) // bottom right
             aliveNeighbors++;
         return aliveNeighbors;
+    }
+
+    /**
+     * Reads a simulation state from the given file.
+     * 
+     * @param fileName Name of the file to be read
+     * @throws IOException if file does not exist or is formatted incorrectly
+     */
+    public void readFromFile(String fileName) throws IOException {
+        cellState = LifeReader.readStateFromFile(fileName, cellState[0].length, cellState.length);
+    }
+
+    /**
+     * Writes the current simulation state to the given file.
+     * 
+     * @param fileName Name of the file to be written to
+     * @throws IOException if there is an error writing to the desired file
+     */
+    public void writeToFile(String fileName) throws IOException {
+        LifeWriter.writeStateToFile(fileName, cellState);
     }
 }

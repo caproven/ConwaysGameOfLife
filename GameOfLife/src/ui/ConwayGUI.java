@@ -11,14 +11,19 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashSet;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import model.SimulationModel;
-import util.Point;
+import model.Point;
 
 /**
  * GUI for the Game of Life simulation. Holds the simulation itself, along with controls.
@@ -52,7 +57,7 @@ public class ConwayGUI extends JFrame {
     /** Custom panels composing the GUI window. */
     private JPanel pnlSim, pnlControl;
     /** Buttons allowing control of the simulation. */
-    private JButton btnStart, btnIncrement, btnStop, btnReset;
+    private JButton btnStart, btnIncrement, btnStop, btnReset, btnRead, btnWrite;
     /** Instance of the SimulationModel, which holds the simulation state. */
     private static SimulationModel model;
     /**
@@ -182,6 +187,24 @@ public class ConwayGUI extends JFrame {
         repaint();
     }
 
+    private String getFileName(boolean chooserType) throws FileNotFoundException {
+        JFileChooser fc = new JFileChooser("./");
+        fc.setApproveButtonText("Select");
+        int returnVal = Integer.MIN_VALUE;
+        if (chooserType) { // open file
+            fc.setDialogTitle("Load Game State");
+            returnVal = fc.showOpenDialog(this);
+        } else { // save file
+            fc.setDialogTitle("Save Game State");
+            returnVal = fc.showSaveDialog(this);
+        }
+        if (returnVal != JFileChooser.APPROVE_OPTION) {
+            throw new IllegalStateException();
+        }
+        File catalogFile = fc.getSelectedFile();
+        return catalogFile.getAbsolutePath();
+    }
+
     /**
      * Custom JPanel enabling the painting of the grid and "live" cells.
      * 
@@ -225,7 +248,7 @@ public class ConwayGUI extends JFrame {
          * Constructs the panel and adds buttons to it.
          */
         public ControlsPanel() {
-            super(new GridLayout(2, 2));
+            super(new GridLayout(2, 3));
             btnStart = new JButton("Start");
             btnStart.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
@@ -241,6 +264,25 @@ public class ConwayGUI extends JFrame {
                 }
             });
             add(btnIncrement);
+            btnRead = new JButton("Read");
+            btnRead.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    doLoop = false;
+                    try {
+                        model.readFromFile(getFileName(true));
+                        syncCellStateToGrid();
+                        ConwayGUI.this.repaint();
+                    } catch (IOException ioe) {
+                        JOptionPane.showMessageDialog(ConwayGUI.this,
+                                "File either does not exist or is formatted incorrectly.", "File Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    } catch (IllegalStateException ise) {
+                        // do nothing
+                    }
+                }
+            });
+            add(btnRead);
             btnStop = new JButton("Stop");
             btnStop.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
@@ -259,6 +301,22 @@ public class ConwayGUI extends JFrame {
                 }
             });
             add(btnReset);
+            btnWrite = new JButton("Write");
+            btnWrite.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    doLoop = false;
+                    try {
+                        model.writeToFile(getFileName(false));
+                    } catch (IOException ioe) {
+                        JOptionPane.showMessageDialog(ConwayGUI.this, "Could not write to the desired file.",
+                                "File Error", JOptionPane.ERROR_MESSAGE);
+                    } catch (IllegalStateException ise) {
+                        // do nothing
+                    }
+                }
+            });
+            add(btnWrite);
         }
     }
 
@@ -286,6 +344,7 @@ public class ConwayGUI extends JFrame {
 
     /**
      * Initializes necessary fields and starts the GUI.
+     * 
      * @param args Command line args (not used)
      */
     public static void main(String[] args) {
