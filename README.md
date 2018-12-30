@@ -24,10 +24,10 @@ Version 0.5
 
 Added
 - Drawing system written from scratch. Previous implementation using JButtons was embarassing and I finally had some free time to mess around with new stuff. New implementation is significantly faster, but more benchmarking has to be done on better hardware than my laptop.
+- Added file I/O back in
 
 Fixed
 - N/A
 
 Other / Issues
-- File I/O removed temporarily to work out resizing capability.
 - Minor memory leak, still looking into this.
