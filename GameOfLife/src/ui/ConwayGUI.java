@@ -14,7 +14,9 @@ import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -47,13 +49,14 @@ public class ConwayGUI extends JFrame {
      * located at the top left corner of the cell in the display, used for drawing the shaded
      * cells.
      */
-    private static HashSet<Point> cells;
+    // private static HashSet<Point> cells;
+    private static Set<Point> cells;
     /**
      * List of cells drawn upon each mouse event. Used so that the same cell is not triggered
      * multiple times while dragging the mouse. Points contained in the list are located at
      * the top left corner of the cell in the display, used for drawing the shaded cells.
      */
-    private HashSet<Point> temp;
+    private static Set<Point> temp;
     /** Custom panels composing the GUI window. */
     private JPanel pnlSim, pnlControl;
     /** Buttons allowing control of the simulation. */
@@ -101,7 +104,7 @@ public class ConwayGUI extends JFrame {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                temp = new HashSet<Point>();
+                temp.clear();
             }
 
             @Override
@@ -167,7 +170,7 @@ public class ConwayGUI extends JFrame {
      * Synchronizes the list of shaded cells to reflect the current simulation state.
      */
     private void syncCellStateToGrid() {
-        cells = new HashSet<Point>();
+        cells.clear();
         for (int y = 0; y < SIMULATION_HEIGHT / GRID_DELTA; y++) {
             for (int x = 0; x < SIMULATION_WIDTH / GRID_DELTA; x++) {
                 if (model.getState()[y][x]) {
@@ -221,8 +224,10 @@ public class ConwayGUI extends JFrame {
             setBackground(Color.WHITE);
             // Draw live cells
             g.setColor(Color.BLACK);
-            for (Point p : cells) {
-                g.fillRect(p.getX(), p.getY(), GRID_DELTA, GRID_DELTA);
+            synchronized (cells) {
+                for (Point p : cells) {
+                    g.fillRect(p.getX(), p.getY(), GRID_DELTA, GRID_DELTA);
+                }
             }
             // Draw grid
             g.setColor(Color.GRAY);
@@ -278,7 +283,7 @@ public class ConwayGUI extends JFrame {
                                 "File either does not exist or is formatted incorrectly.", "File Error",
                                 JOptionPane.ERROR_MESSAGE);
                     } catch (IllegalStateException ise) {
-                        // do nothing
+                        // user canceled operation, do nothing
                     }
                 }
             });
@@ -295,7 +300,7 @@ public class ConwayGUI extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
-                    cells = new HashSet<Point>();
+                    cells.clear();
                     model = new SimulationModel(SIMULATION_WIDTH / GRID_DELTA, SIMULATION_HEIGHT / GRID_DELTA);
                     ConwayGUI.this.repaint();
                 }
@@ -312,7 +317,7 @@ public class ConwayGUI extends JFrame {
                         JOptionPane.showMessageDialog(ConwayGUI.this, "Could not write to the desired file.",
                                 "File Error", JOptionPane.ERROR_MESSAGE);
                     } catch (IllegalStateException ise) {
-                        // do nothing
+                        // user canceled operation, do nothing
                     }
                 }
             });
@@ -330,8 +335,8 @@ public class ConwayGUI extends JFrame {
         @Override
         public void run() {
             while (true) {
-                if (ConwayGUI.this.doLoop) {
-                    ConwayGUI.this.tick();
+                if (doLoop) {
+                    tick();
                 }
                 try {
                     Thread.sleep(16); // roughly 60 fps
@@ -348,7 +353,8 @@ public class ConwayGUI extends JFrame {
      * @param args Command line args (not used)
      */
     public static void main(String[] args) {
-        cells = new HashSet<Point>();
+        cells = Collections.synchronizedSet(new HashSet<Point>());
+        temp = Collections.synchronizedSet(new HashSet<Point>());
         model = new SimulationModel(SIMULATION_WIDTH / GRID_DELTA, SIMULATION_HEIGHT / GRID_DELTA);
         new ConwayGUI();
     }
