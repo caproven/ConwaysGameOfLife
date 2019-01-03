@@ -47,7 +47,7 @@ public class ConwayGUI extends JFrame {
     private static final int SIMULATION_HEIGHT = 600;
     /** Size in pixels of each cell (square) in the simulation. */
     private static final int GRID_DELTA = 15;
-    /** Maximum time interval between simulation updates in milliseconds. */
+    /** Maximum time interval between simulation updates / ticks in milliseconds. */
     private static final int TICKRATE_MAX = 70;
     /**
      * List of cells currently displayed as "alive" (shaded). Points contained in the list are
