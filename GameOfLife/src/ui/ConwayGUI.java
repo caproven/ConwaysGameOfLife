@@ -21,8 +21,11 @@ import java.util.Set;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.SwingConstants;
 
 import model.SimulationModel;
 import model.Point;
@@ -61,6 +64,10 @@ public class ConwayGUI extends JFrame {
     private JPanel pnlSim, pnlControl;
     /** Buttons allowing control of the simulation. */
     private JButton btnStart, btnIncrement, btnStop, btnReset, btnRead, btnWrite;
+    /** Slider that controls the tick rate of the simulation. */
+    private JSlider sldrTickSpeed;
+    /** Label for the tick speed slider. */
+    private JLabel lblSpeedSlider;
     /** Instance of the SimulationModel, which holds the simulation state. */
     private static SimulationModel model;
     /**
@@ -253,7 +260,7 @@ public class ConwayGUI extends JFrame {
          * Constructs the panel and adds buttons to it.
          */
         public ControlsPanel() {
-            super(new GridLayout(2, 3));
+            super(new GridLayout(3, 3));
             btnStart = new JButton("Start");
             btnStart.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
@@ -322,6 +329,10 @@ public class ConwayGUI extends JFrame {
                 }
             });
             add(btnWrite);
+            lblSpeedSlider = new JLabel("Speed:", SwingConstants.RIGHT);
+            add(lblSpeedSlider);
+            sldrTickSpeed = new JSlider(0, 150);
+            add(sldrTickSpeed);
         }
     }
 
@@ -339,7 +350,7 @@ public class ConwayGUI extends JFrame {
                     tick();
                 }
                 try {
-                    Thread.sleep(16); // roughly 60 fps
+                    Thread.sleep(sldrTickSpeed.getMaximum() + 5 - sldrTickSpeed.getValue());
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
