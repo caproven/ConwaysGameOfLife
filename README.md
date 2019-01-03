@@ -20,14 +20,15 @@ Exclusively using the latest in hands-on debugging techniques (I spam click ever
 
 ## Updates
 
-Version 0.5.1
+Version 0.6
 
 Added
 - Drawing system written from scratch. Previous implementation using JButtons was embarassing and I finally had some free time to mess around with new stuff. New implementation is significantly faster, but more benchmarking has to be done on better hardware than my laptop.
+- Slider to change speed (tick rate)
 
 Fixed
 - Benchmarking and analysis indicated that memleak did not exist. Looking into further mem optimizations.
 
 Other / Issues
-- SOON TO ADD: variable framerate and simulation size
+- SOON TO ADD: variable simulation size
 - Compare potential differences between ConwayGUI.SimulationTicker extending Thread vs. implementing Runnable.
