@@ -47,6 +47,8 @@ public class ConwayGUI extends JFrame {
     private static final int SIMULATION_HEIGHT = 600;
     /** Size in pixels of each cell (square) in the simulation. */
     private static final int GRID_DELTA = 15;
+    /** Maximum time interval between simulation updates in milliseconds. */
+    private static final int TICKRATE_MAX = 70;
     /**
      * List of cells currently displayed as "alive" (shaded). Points contained in the list are
      * located at the top left corner of the cell in the display, used for drawing the shaded
@@ -331,7 +333,7 @@ public class ConwayGUI extends JFrame {
             add(btnWrite);
             lblSpeedSlider = new JLabel("Speed:", SwingConstants.RIGHT);
             add(lblSpeedSlider);
-            sldrTickSpeed = new JSlider(0, 150);
+            sldrTickSpeed = new JSlider(0, TICKRATE_MAX);
             add(sldrTickSpeed);
         }
     }
@@ -350,7 +352,7 @@ public class ConwayGUI extends JFrame {
                     tick();
                 }
                 try {
-                    Thread.sleep(sldrTickSpeed.getMaximum() + 5 - sldrTickSpeed.getValue());
+                    Thread.sleep(sldrTickSpeed.getMaximum() + 1 - sldrTickSpeed.getValue());
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
