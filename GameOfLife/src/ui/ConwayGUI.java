@@ -54,7 +54,6 @@ public class ConwayGUI extends JFrame {
      * located at the top left corner of the cell in the display, used for drawing the shaded
      * cells.
      */
-    // private static HashSet<Point> cells;
     private static Set<Point> cells;
     /**
      * List of cells drawn upon each mouse event. Used so that the same cell is not triggered
