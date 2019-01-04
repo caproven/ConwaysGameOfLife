@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -25,6 +26,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import model.SimulationModel;
@@ -39,14 +41,29 @@ public class ConwayGUI extends JFrame {
     /** ID number used for serialization. */
     private static final long serialVersionUID = 1L;
     /**
+     * Default width in pixels of the simulation panel. When resizing, selecting to "Reset"
+     * will bring back this value.
+     */
+    private static final int DEFAULT_SIM_WIDTH = 600;
+    /**
+     * Default height in pixels of the simulation panel. When resizing, selecting to "Reset"
+     * will bring back this value.
+     */
+    private static final int DEFAULT_SIM_HEIGHT = 600;
+    /**
+     * Default grid cell size in pixels for the simulation panel. When resizing, selecting to
+     * "Reset" will bring back this value.
+     */
+    private static final int DEFAULT_GRID_DELTA = 15;
+    /**
      * Width in pixels of the simulation panel. This width is also the width of the entire GUI
      * window.
      */
-    private static final int SIMULATION_WIDTH = 600;
+    private static int simulationWidth = DEFAULT_SIM_WIDTH;
     /** Height in pixels of the simulation panel. */
-    private static final int SIMULATION_HEIGHT = 600;
+    private static int simulationHeight = DEFAULT_SIM_HEIGHT;
     /** Size in pixels of each cell (square) in the simulation. */
-    private static final int GRID_DELTA = 15;
+    private static int gridDelta = DEFAULT_GRID_DELTA;
     /** Maximum time interval between simulation updates / ticks in milliseconds. */
     private static final int TICKRATE_MAX = 70;
     /**
@@ -64,16 +81,14 @@ public class ConwayGUI extends JFrame {
     /** Custom panels composing the GUI window. */
     private JPanel pnlSim, pnlControl;
     /** Buttons allowing control of the simulation. */
-    private JButton btnStart, btnIncrement, btnStop, btnReset, btnRead, btnWrite;
+    private JButton btnStart, btnIncrement, btnStop, btnReset, btnRead, btnWrite, btnResize;
     /** Slider that controls the tick rate of the simulation. */
     private JSlider sldrTickSpeed;
     /** Label for the tick speed slider. */
     private JLabel lblSpeedSlider;
     /** Instance of the SimulationModel, which holds the simulation state. */
     private static SimulationModel model;
-    /**
-     * Boolean dictating whether the SimulationTicker thread should call a simulation update.
-     */
+    /** Boolean dictating whether the UpdateTickThread should call a simulation update. */
     boolean doLoop = false;
 
     /**
@@ -130,13 +145,11 @@ public class ConwayGUI extends JFrame {
                 // do nothing
             }
         });
-        pnlSim.setPreferredSize(new Dimension(SIMULATION_WIDTH, SIMULATION_HEIGHT));
+        pnlSim.setPreferredSize(new Dimension(simulationWidth, simulationHeight));
         c.add(pnlSim, BorderLayout.CENTER);
         pnlControl = new ControlsPanel();
-        pnlControl.setPreferredSize(new Dimension(SIMULATION_WIDTH, 80));
+        pnlControl.setPreferredSize(new Dimension(simulationWidth, 80));
         c.add(pnlControl, BorderLayout.SOUTH);
-        SimulationTicker simThread = new SimulationTicker();
-        simThread.start();
         pack(); // used along with JPanel.setPreferredSize() to dictate window size
         setVisible(true);
     }
@@ -149,13 +162,13 @@ public class ConwayGUI extends JFrame {
      */
     private void toggleCell(MouseEvent e) {
         Point pFitToGrid = fitToGrid(new Point(e.getX(), e.getY()));
-        if (e.getX() < SIMULATION_WIDTH && e.getX() >= 0 && e.getY() < SIMULATION_HEIGHT && e.getY() >= 0
-                && temp.add(pFitToGrid)) {
+        if (e.getX() < simulationWidth && e.getX() >= 0 && e.getY() < simulationHeight
+                && e.getY() >= 0 && temp.add(pFitToGrid)) {
             if (!cells.add(pFitToGrid)) {
                 cells.remove(pFitToGrid);
-                model.getState()[e.getY() / GRID_DELTA][e.getX() / GRID_DELTA] = false;
+                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = false;
             } else {
-                model.getState()[e.getY() / GRID_DELTA][e.getX() / GRID_DELTA] = true;
+                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = true;
             }
             repaint();
         } // skips invalid cursor locations (from dragging outside window)
@@ -169,8 +182,8 @@ public class ConwayGUI extends JFrame {
      * @return Point with coordinates fit correctly to the grid
      */
     private Point fitToGrid(Point p) {
-        int x = p.getX() / GRID_DELTA * GRID_DELTA;
-        int y = p.getY() / GRID_DELTA * GRID_DELTA;
+        int x = p.getX() / gridDelta * gridDelta;
+        int y = p.getY() / gridDelta * gridDelta;
         return new Point(x, y);
     }
 
@@ -179,10 +192,10 @@ public class ConwayGUI extends JFrame {
      */
     private void syncCellStateToGrid() {
         cells.clear();
-        for (int y = 0; y < SIMULATION_HEIGHT / GRID_DELTA; y++) {
-            for (int x = 0; x < SIMULATION_WIDTH / GRID_DELTA; x++) {
+        for (int y = 0; y < simulationHeight / gridDelta; y++) {
+            for (int x = 0; x < simulationWidth / gridDelta; x++) {
                 if (model.getState()[y][x]) {
-                    cells.add(new Point(x * GRID_DELTA, y * GRID_DELTA));
+                    cells.add(new Point(x * gridDelta, y * gridDelta));
                 }
             }
         }
@@ -234,16 +247,16 @@ public class ConwayGUI extends JFrame {
             g.setColor(Color.BLACK);
             synchronized (cells) {
                 for (Point p : cells) {
-                    g.fillRect(p.getX(), p.getY(), GRID_DELTA, GRID_DELTA);
+                    g.fillRect(p.getX(), p.getY(), gridDelta, gridDelta);
                 }
             }
             // Draw grid
             g.setColor(Color.GRAY);
-            for (int x = GRID_DELTA; x < SIMULATION_WIDTH; x += GRID_DELTA) {
-                for (int y = GRID_DELTA; y < SIMULATION_HEIGHT; y += GRID_DELTA) {
-                    g.drawLine(0, y, SIMULATION_WIDTH, y);
+            for (int x = gridDelta; x < simulationWidth; x += gridDelta) {
+                for (int y = gridDelta; y < simulationHeight; y += gridDelta) {
+                    g.drawLine(0, y, simulationWidth, y);
                 }
-                g.drawLine(x, 0, x, SIMULATION_HEIGHT);
+                g.drawLine(x, 0, x, simulationHeight);
             }
         }
     }
@@ -266,6 +279,9 @@ public class ConwayGUI extends JFrame {
             btnStart.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     doLoop = true;
+                    btnStart.setEnabled(false);
+                    btnStop.setEnabled(true);
+                    new UpdateTickThread().start();
                 }
             });
             add(btnStart);
@@ -273,6 +289,8 @@ public class ConwayGUI extends JFrame {
             btnIncrement.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
                     tick();
                 }
             });
@@ -282,14 +300,16 @@ public class ConwayGUI extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
                     try {
                         model.readFromFile(getFileName(true));
                         syncCellStateToGrid();
                         ConwayGUI.this.repaint();
                     } catch (IOException ioe) {
                         JOptionPane.showMessageDialog(ConwayGUI.this,
-                                "File either does not exist or is formatted incorrectly.", "File Error",
-                                JOptionPane.ERROR_MESSAGE);
+                                "File either does not exist or is formatted incorrectly.",
+                                "File Error", JOptionPane.ERROR_MESSAGE);
                     } catch (IllegalStateException ise) {
                         // user canceled operation, do nothing
                     }
@@ -297,9 +317,12 @@ public class ConwayGUI extends JFrame {
             });
             add(btnRead);
             btnStop = new JButton("Stop");
+            btnStop.setEnabled(false); // defaults to disabled
             btnStop.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
                 }
             });
             add(btnStop);
@@ -308,8 +331,11 @@ public class ConwayGUI extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
                     cells.clear();
-                    model = new SimulationModel(SIMULATION_WIDTH / GRID_DELTA, SIMULATION_HEIGHT / GRID_DELTA);
+                    model = new SimulationModel(simulationWidth / gridDelta,
+                            simulationHeight / gridDelta);
                     ConwayGUI.this.repaint();
                 }
             });
@@ -319,11 +345,14 @@ public class ConwayGUI extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
                     try {
                         model.writeToFile(getFileName(false));
                     } catch (IOException ioe) {
-                        JOptionPane.showMessageDialog(ConwayGUI.this, "Could not write to the desired file.",
-                                "File Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(ConwayGUI.this,
+                                "Could not write to the desired file.", "File Error",
+                                JOptionPane.ERROR_MESSAGE);
                     } catch (IllegalStateException ise) {
                         // user canceled operation, do nothing
                     }
@@ -334,6 +363,161 @@ public class ConwayGUI extends JFrame {
             add(lblSpeedSlider);
             sldrTickSpeed = new JSlider(0, TICKRATE_MAX);
             add(sldrTickSpeed);
+            btnResize = new JButton("Resize");
+            btnResize.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    doLoop = false;
+                    btnStop.setEnabled(false);
+                    btnStart.setEnabled(true);
+                    new ResizeWindow();
+                }
+            });
+            add(btnResize);
+        }
+    }
+
+    /**
+     * Separate frame from the main window that provides options for resizing the Game of Life
+     * simulation.
+     * 
+     * @author caproven
+     */
+    private class ResizeWindow extends JFrame {
+        /** ID number used for serialization. */
+        private static final long serialVersionUID = 1L;
+        /** Panels composing the resize options window. */
+        private JPanel pnlButtons, pnlInputs, pnlWidth, pnlHeight, pnlGridSize;
+        /** Buttons used to either reset values or apply the currently entered ones. */
+        private JButton btnReset, btnAccept;
+        /** Labels for each of the text fields. */
+        private JLabel lblWidth, lblHeight, lblGridSize;
+        /** Text fields for entering in new simulation dimensions. */
+        private JTextField tfWidth, tfHeight, tfGridSize;
+        /** Minimum size in pixels the simulation may be (applies to both width and height). */
+        private final int minDimension = 250;
+        /** Minimum size in pixels the grid size may be. */
+        private final int minGrid = 5;
+
+        /**
+         * Constructs the new window for resize options.
+         */
+        public ResizeWindow() {
+            // top left corner of window is ~1/4 in from corner of main window
+            int xLocation = ConwayGUI.this.getLocationOnScreen().x
+                    + ConwayGUI.this.getSize().width / 4;
+            int yLocation = ConwayGUI.this.getLocationOnScreen().y
+                    + ConwayGUI.this.getSize().height / 4;
+            setLocation(xLocation, yLocation);
+            setTitle("Resize Options");
+            setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            setResizable(false);
+            Container c = getContentPane();
+            c.setPreferredSize(new Dimension(300, 170));
+            c.setLayout(new BorderLayout());
+            // Set up pnlInputs
+            pnlInputs = new JPanel();
+            pnlInputs.setLayout(new GridLayout(3, 1));
+            pnlWidth = new JPanel(); // composed of width label and text field
+            pnlWidth.setLayout(new FlowLayout(FlowLayout.LEFT));
+            lblWidth = new JLabel("Width(px):");
+            tfWidth = new JTextField(Integer.toString(simulationWidth));
+            tfWidth.setColumns(10);
+            pnlWidth.add(lblWidth);
+            pnlWidth.add(tfWidth);
+            pnlInputs.add(pnlWidth);
+            pnlHeight = new JPanel(); // composed of height label and text field
+            pnlHeight.setLayout(new FlowLayout(FlowLayout.LEFT));
+            lblHeight = new JLabel("Height(px):");
+            tfHeight = new JTextField(Integer.toString(simulationHeight));
+            tfHeight.setColumns(10);
+            pnlHeight.add(lblHeight);
+            pnlHeight.add(tfHeight);
+            pnlInputs.add(pnlHeight);
+            pnlGridSize = new JPanel(); // composed of grid size label and text field
+            pnlGridSize.setLayout(new FlowLayout(FlowLayout.LEFT));
+            lblGridSize = new JLabel("Grid Size(px):");
+            tfGridSize = new JTextField(Integer.toString(gridDelta));
+            tfGridSize.setColumns(10);
+            pnlGridSize.add(lblGridSize);
+            pnlGridSize.add(tfGridSize);
+            pnlInputs.add(pnlGridSize);
+            // Set up pnlButtons
+            pnlButtons = new JPanel();
+            pnlButtons.setLayout(new BorderLayout());
+            btnReset = new JButton("Reset");
+            btnReset.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    tfWidth.setText(Integer.toString(DEFAULT_SIM_HEIGHT));
+                    tfHeight.setText(Integer.toString(DEFAULT_SIM_HEIGHT));
+                    tfGridSize.setText(Integer.toString(DEFAULT_GRID_DELTA));
+                }
+            });
+            pnlButtons.add(btnReset, BorderLayout.WEST);
+            btnAccept = new JButton("Accept");
+            btnAccept.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    int[] formattedInputs = formattedInputs(tfWidth.getText(), tfHeight.getText(),
+                            tfGridSize.getText());
+                    if (formattedInputs == null) { // had invalid inputs
+                        JOptionPane.showMessageDialog(ResizeWindow.this,
+                                "Entered an invalid input.\n"
+                                        + "Width and Height must be integers >= 250 while\n"
+                                        + "Grid Size must be >= 5. Width and Height must also\n"
+                                        + "be divisible by the Grid Size.",
+                                "Input Error", JOptionPane.ERROR_MESSAGE);
+                    } else if (formattedInputs[0] == -1) {
+                        JOptionPane.showMessageDialog(ResizeWindow.this,
+                                "Entered an invalid input.\nResulting grid cannot be smaller than 3x3.",
+                                "Input Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        doLoop = false;
+                        simulationWidth = formattedInputs[0];
+                        simulationHeight = formattedInputs[1];
+                        gridDelta = formattedInputs[2];
+                        ConwayGUI.this.dispose();
+                        dispose();
+                        createNewGUIInstance();
+                    }
+                }
+            });
+            pnlButtons.add(btnAccept, BorderLayout.EAST);
+            c.add(pnlInputs, BorderLayout.CENTER);
+            c.add(pnlButtons, BorderLayout.SOUTH);
+            pack();
+            setVisible(true);
+        }
+
+        /**
+         * Formats input strings into an array of three integers in order: width, height,
+         * grid_size.
+         * 
+         * @param widthStr    String containing desired width in pixels
+         * @param heightStr   String containing desired height in pixels
+         * @param gridSizeStr String containing desired grid size in pixel
+         * @return Integer array containing order, height, and gridSize. If resulting grid cell
+         *         dimensions would have been less than 3x3, returns the first index as -1.
+         */
+        private int[] formattedInputs(String widthStr, String heightStr, String gridSizeStr) {
+            int widthInt, heightInt, gridSizeInt;
+            try {
+                widthInt = Integer.parseInt(widthStr);
+                heightInt = Integer.parseInt(heightStr);
+                gridSizeInt = Integer.parseInt(gridSizeStr);
+            } catch (NumberFormatException nfe) {
+                return null;
+            }
+            if (widthInt < minDimension || heightInt < minDimension || gridSizeInt < minGrid
+                    || widthInt % gridSizeInt != 0 || heightInt % gridSizeInt != 0) {
+                return null;
+            }
+            int[] returnVals = { widthInt, heightInt, gridSizeInt };
+            if (widthInt / gridSizeInt < 3 || heightInt / gridSizeInt < 3) {
+                returnVals[0] = -1;
+            }
+            return returnVals;
         }
     }
 
@@ -343,17 +527,15 @@ public class ConwayGUI extends JFrame {
      * 
      * @author caproven
      */
-    private class SimulationTicker extends Thread {
+    private class UpdateTickThread extends Thread {
         @Override
         public void run() {
-            while (true) {
-                if (doLoop) {
-                    tick();
-                }
+            while (doLoop) {
+                tick();
                 try {
                     Thread.sleep(sldrTickSpeed.getMaximum() + 1 - sldrTickSpeed.getValue());
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    break;
                 }
             }
         }
@@ -365,9 +547,13 @@ public class ConwayGUI extends JFrame {
      * @param args Command line args (not used)
      */
     public static void main(String[] args) {
+        createNewGUIInstance();
+    }
+
+    private static void createNewGUIInstance() {
         cells = Collections.synchronizedSet(new HashSet<Point>());
         temp = Collections.synchronizedSet(new HashSet<Point>());
-        model = new SimulationModel(SIMULATION_WIDTH / GRID_DELTA, SIMULATION_HEIGHT / GRID_DELTA);
+        model = new SimulationModel(simulationWidth / gridDelta, simulationHeight / gridDelta);
         new ConwayGUI();
     }
 }
