@@ -12,7 +12,7 @@ I find cellular automata to be fascinating, and Conway's Game of Life seemed lik
 
 ## Installation
 
-Standard Java procedures, recommend generating a .jar executable.
+The latest update can be found as an executable .jar in the GameOfLife/executables/ directory. Either double click it to run or enter "java -jar GoL.jar" into a console.
 
 ## Tests
 
