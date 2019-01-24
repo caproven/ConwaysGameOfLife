@@ -12,6 +12,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -368,6 +370,7 @@ public class ConwayGUI extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     doLoop = false;
+                    ConwayGUI.this.setEnabled(false);
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     new ResizeWindow();
@@ -411,6 +414,12 @@ public class ConwayGUI extends JFrame {
             setLocation(xLocation, yLocation);
             setTitle("Resize Options");
             setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    closeResizeWindow();
+                }
+            });
             setResizable(false);
             Container c = getContentPane();
             c.setPreferredSize(new Dimension(300, 170));
@@ -518,6 +527,11 @@ public class ConwayGUI extends JFrame {
                 returnVals[0] = -1;
             }
             return returnVals;
+        }
+        
+        private void closeResizeWindow() {
+            ConwayGUI.this.setEnabled(true);
+            this.dispose();
         }
     }
 
