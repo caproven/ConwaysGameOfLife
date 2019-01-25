@@ -6,14 +6,12 @@ import java.util.Scanner;
 
 /**
  * Handles reading of Game of Life states from a file.
- * 
  * @author caproven
  */
 public class LifeReader {
     /**
      * Reads cell states from a given file, first ensuring that file contents are the correct
      * format.
-     * 
      * @param fileName Name of the file to be read
      * @param x X dimension (number of cells) the simulation should contain
      * @param y Y dimension (number of cells) the simulation should contain

@@ -30,13 +30,15 @@ import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.Timer;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import model.SimulationModel;
 import model.Point;
 
 /**
  * GUI for the Game of Life simulation. Holds the simulation itself, along with controls.
- * 
  * @author caproven
  */
 public class ConwayGUI extends JFrame {
@@ -90,8 +92,11 @@ public class ConwayGUI extends JFrame {
     private JLabel lblSpeedSlider;
     /** Instance of the SimulationModel, which holds the simulation state. */
     private static SimulationModel model;
-    /** Boolean dictating whether the UpdateTickThread should call a simulation update. */
-    boolean doLoop = false;
+    /**
+     * Timer used to call update ticks at certain millisecond intervals (set by
+     * sldrTickSpeed).
+     */
+    private Timer tickTimer;
 
     /**
      * Constructs the GUI, initializing panels and adding mouse listeners.
@@ -152,15 +157,20 @@ public class ConwayGUI extends JFrame {
         pnlControl = new ControlsPanel();
         pnlControl.setPreferredSize(new Dimension(simulationWidth, 80));
         c.add(pnlControl, BorderLayout.SOUTH);
+        tickTimer = new Timer(sldrTickSpeed.getValue(), new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                tick();
+            }
+        });
         pack(); // used along with JPanel.setPreferredSize() to dictate window size
         setVisible(true);
     }
 
     /**
      * Toggles the state of a cell when it is clicked or dragged over.
-     * 
      * @param e MouseEvent from the mouse being clicked over the simulation panel (contains X
-     *          and Y coordinates)
+     * and Y coordinates)
      */
     private void toggleCell(MouseEvent e) {
         Point pFitToGrid = fitToGrid(new Point(e.getX(), e.getY()));
@@ -179,7 +189,6 @@ public class ConwayGUI extends JFrame {
     /**
      * Fits a Point to the grid, altering its coordinates to match the top left corner of the
      * represented cell.
-     * 
      * @param p Point with potentially unfit coordinates
      * @return Point with coordinates fit correctly to the grid
      */
@@ -233,7 +242,6 @@ public class ConwayGUI extends JFrame {
 
     /**
      * Custom JPanel enabling the painting of the grid and "live" cells.
-     * 
      * @author caproven
      */
     class SimulationPanel extends JPanel {
@@ -265,7 +273,6 @@ public class ConwayGUI extends JFrame {
 
     /**
      * Custom JPanel containing buttons for the system controls.
-     * 
      * @author caproven
      */
     class ControlsPanel extends JPanel {
@@ -280,17 +287,16 @@ public class ConwayGUI extends JFrame {
             btnStart = new JButton("Start");
             btnStart.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = true;
                     btnStart.setEnabled(false);
                     btnStop.setEnabled(true);
-                    new UpdateTickThread().start();
+                    tickTimer.start();
                 }
             });
             add(btnStart);
             btnIncrement = new JButton("+1");
             btnIncrement.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     tick();
@@ -301,7 +307,7 @@ public class ConwayGUI extends JFrame {
             btnRead.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     try {
@@ -322,7 +328,7 @@ public class ConwayGUI extends JFrame {
             btnStop.setEnabled(false); // defaults to disabled
             btnStop.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                 }
@@ -332,7 +338,7 @@ public class ConwayGUI extends JFrame {
             btnReset.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     cells.clear();
@@ -346,7 +352,7 @@ public class ConwayGUI extends JFrame {
             btnWrite.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     try {
@@ -364,12 +370,18 @@ public class ConwayGUI extends JFrame {
             lblSpeedSlider = new JLabel("Speed:", SwingConstants.RIGHT);
             add(lblSpeedSlider);
             sldrTickSpeed = new JSlider(0, TICKRATE_MAX);
+            sldrTickSpeed.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent arg0) {
+                    tickTimer.setDelay(sldrTickSpeed.getMaximum() + 1 - sldrTickSpeed.getValue());
+                }
+            });
             add(sldrTickSpeed);
             btnResize = new JButton("Resize");
             btnResize.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    doLoop = false;
+                    tickTimer.stop();
                     ConwayGUI.this.setEnabled(false);
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
@@ -383,7 +395,6 @@ public class ConwayGUI extends JFrame {
     /**
      * Separate frame from the main window that provides options for resizing the Game of Life
      * simulation.
-     * 
      * @author caproven
      */
     private class ResizeWindow extends JFrame {
@@ -482,7 +493,6 @@ public class ConwayGUI extends JFrame {
                                 "Entered an invalid input.\nResulting grid cannot be smaller than 3x3.",
                                 "Input Error", JOptionPane.ERROR_MESSAGE);
                     } else {
-                        doLoop = false;
                         simulationWidth = formattedInputs[0];
                         simulationHeight = formattedInputs[1];
                         gridDelta = formattedInputs[2];
@@ -502,12 +512,11 @@ public class ConwayGUI extends JFrame {
         /**
          * Formats input strings into an array of three integers in order: width, height,
          * grid_size.
-         * 
-         * @param widthStr    String containing desired width in pixels
-         * @param heightStr   String containing desired height in pixels
+         * @param widthStr String containing desired width in pixels
+         * @param heightStr String containing desired height in pixels
          * @param gridSizeStr String containing desired grid size in pixel
          * @return Integer array containing order, height, and gridSize. If resulting grid cell
-         *         dimensions would have been less than 3x3, returns the first index as -1.
+         * dimensions would have been less than 3x3, returns the first index as -1.
          */
         private int[] formattedInputs(String widthStr, String heightStr, String gridSizeStr) {
             int widthInt, heightInt, gridSizeInt;
@@ -528,7 +537,7 @@ public class ConwayGUI extends JFrame {
             }
             return returnVals;
         }
-        
+
         private void closeResizeWindow() {
             ConwayGUI.this.setEnabled(true);
             this.dispose();
@@ -536,34 +545,16 @@ public class ConwayGUI extends JFrame {
     }
 
     /**
-     * Thread class that calls the simulation to tick every _ milliseconds when
-     * ConwayGUI.doLoop is set to true.
-     * 
-     * @author caproven
-     */
-    private class UpdateTickThread extends Thread {
-        @Override
-        public void run() {
-            while (doLoop) {
-                tick();
-                try {
-                    Thread.sleep(sldrTickSpeed.getMaximum() + 1 - sldrTickSpeed.getValue());
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }
-    }
-
-    /**
      * Initializes necessary fields and starts the GUI.
-     * 
      * @param args Command line args (not used)
      */
     public static void main(String[] args) {
         createNewGUIInstance();
     }
 
+    /**
+     * Constructs new instances of program model fields and spawns a new instance of the GUI.
+     */
     private static void createNewGUIInstance() {
         cells = Collections.synchronizedSet(new HashSet<Point>());
         temp = Collections.synchronizedSet(new HashSet<Point>());

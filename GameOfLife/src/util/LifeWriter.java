@@ -6,14 +6,12 @@ import java.io.PrintStream;
 
 /**
  * Handles writing of Game of Life state to a file.
- * 
  * @author caproven
  */
 public class LifeWriter {
     /**
      * Writes cell states to a given file, printing '0' if a cell is "dead" or '1' if a cell
      * is "alive".
-     * 
      * @param fileName Name of the file to write to
      * @param state Cell states array that should be written to the file
      * @throws IOException if there is an error writing to the desired file
