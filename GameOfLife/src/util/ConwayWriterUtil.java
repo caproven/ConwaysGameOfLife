@@ -8,7 +8,7 @@ import java.io.PrintStream;
  * Handles writing of Game of Life state to a file.
  * @author caproven
  */
-public class LifeWriter {
+public class ConwayWriterUtil {
     /**
      * Writes cell states to a given file, printing '0' if a cell is "dead" or '1' if a cell
      * is "alive".
@@ -16,11 +16,11 @@ public class LifeWriter {
      * @param state Cell states array that should be written to the file
      * @throws IOException if there is an error writing to the desired file
      */
-    public static void writeStateToFile(String fileName, boolean[][] state) throws IOException {
+    public static void writeStateToFile(String fileName, int[][] state) throws IOException {
         PrintStream toFile = new PrintStream(new File(fileName));
         for (int y = 0; y < state.length; y++) { // rows
             for (int x = 0; x < state[0].length; x++) { // columns
-                if (state[y][x]) {
+                if (state[y][x] == 1) {
                     toFile.print("1");
                 } else {
                     toFile.print("0");

@@ -2,40 +2,37 @@ package model;
 
 import java.io.IOException;
 
-import util.LifeReader;
-import util.LifeWriter;
+import util.ConwayReaderUtil;
+import util.ConwayWriterUtil;
 
 /**
  * Model for the Game of Life simulation. Holds states of the simulation, available to the
  * GUI.
- * 
  * @author caproven
  */
-public class SimulationModel {
+public class ConwayModel {
     /**
-     * 2D boolean arrays holding the current simulation state. True indicates a "live" cell.
+     * 2D int arrays holding the current simulation state. True indicates a "live" cell.
      * cellStateInc (increment) is used to update cellState during updates.
      */
-    private boolean[][] cellState, cellStateInc;
+    private int[][] cellState, cellStateInc;
 
     /**
      * Constructs the SimulationModel with the given dimensions. The X and Y dimensions here
      * represent the number of cells on each axis, not the visual size of the simulation.
-     * 
      * @param x Dimension of simulation along the X axis
      * @param y Dimension of simulation along the Y axis
      */
-    public SimulationModel(int x, int y) {
-        cellState = new boolean[y][x];
-        cellStateInc = new boolean[y][x];
+    public ConwayModel(int x, int y) {
+        cellState = new int[y][x];
+        cellStateInc = new int[y][x];
     }
 
     /**
      * Retrieves the current state of the simulation.
-     * 
-     * @return 2D boolean array representing current cell states
+     * @return 2D int array representing current cell states
      */
-    public boolean[][] getState() {
+    public int[][] getState() {
         return cellState;
     }
 
@@ -53,16 +50,14 @@ public class SimulationModel {
         for (int y = 0; y < cellState.length; y++) {
             for (int x = 0; x < cellState[0].length; x++) {
                 int neighbors = liveNeighbors(y, x);
-                if (cellStateInc[y][x]) { // If cell is alive
-                    if (neighbors < 2) {
-                        cellState[y][x] = false;
-                    } else if (neighbors > 3) {
-                        cellState[y][x] = false;
+                if (cellStateInc[y][x] == 1) { // If cell is alive
+                    if (neighbors < 2 || neighbors > 3) {
+                        cellState[y][x] = 0;
                     }
                     // if 2 or 3, cell survives
                 } else { // If cell is dead
                     if (neighbors == 3) {
-                        cellState[y][x] = true;
+                        cellState[y][x] = 1;
                     }
                 }
             } // inner for
@@ -74,7 +69,6 @@ public class SimulationModel {
      * for a total number of 8 surrounding cells to be checked. When checking cells at the
      * border of the cell grid, a "wrap around" effect is applied (i.e. a cell on the left
      * border will check the right border when checking cells to the left of itself).
-     * 
      * @param y Y coordinate of the center cell for calculating neighbors.
      * @param x X coordinate of the center cell for calculating neighbors.
      * @return Number of "live" cells. Range is [0,8].
@@ -103,42 +97,35 @@ public class SimulationModel {
             xM1 = x - 1;
             xP1 = x + 1;
         }
-        if (cellStateInc[yM1][xM1]) // top left
-            aliveNeighbors++;
-        if (cellStateInc[yM1][x]) // top
-            aliveNeighbors++;
-        if (cellStateInc[yM1][xP1]) // top right
-            aliveNeighbors++;
-        if (cellStateInc[y][xM1]) // left
-            aliveNeighbors++;
-        if (cellStateInc[y][xP1]) // right
-            aliveNeighbors++;
-        if (cellStateInc[yP1][xM1]) // bottom left
-            aliveNeighbors++;
-        if (cellStateInc[yP1][x]) // bottom
-            aliveNeighbors++;
-        if (cellStateInc[yP1][xP1]) // bottom right
-            aliveNeighbors++;
+
+        aliveNeighbors += cellStateInc[yM1][xM1]; // top left
+        aliveNeighbors += cellStateInc[yM1][x]; // top
+        aliveNeighbors += cellStateInc[yM1][xP1]; // top right
+        aliveNeighbors += cellStateInc[y][xM1]; // left
+        aliveNeighbors += cellStateInc[y][xP1]; // right
+        aliveNeighbors += cellStateInc[yP1][xM1]; // bottom left
+        aliveNeighbors += cellStateInc[yP1][x]; // bottom
+        aliveNeighbors += cellStateInc[yP1][xP1]; // bottom right
+
         return aliveNeighbors;
     }
 
     /**
      * Reads a simulation state from the given file.
-     * 
      * @param fileName Name of the file to be read
      * @throws IOException if file does not exist or is formatted incorrectly
      */
     public void readFromFile(String fileName) throws IOException {
-        cellState = LifeReader.readStateFromFile(fileName, cellState[0].length, cellState.length);
+        cellState = ConwayReaderUtil.readStateFromFile(fileName, cellState[0].length,
+                cellState.length);
     }
 
     /**
      * Writes the current simulation state to the given file.
-     * 
      * @param fileName Name of the file to be written to
      * @throws IOException if there is an error writing to the desired file
      */
     public void writeToFile(String fileName) throws IOException {
-        LifeWriter.writeStateToFile(fileName, cellState);
+        ConwayWriterUtil.writeStateToFile(fileName, cellState);
     }
 }

@@ -34,7 +34,7 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import model.SimulationModel;
+import model.ConwayModel;
 import model.Point;
 
 /**
@@ -91,7 +91,7 @@ public class ConwayGUI extends JFrame {
     /** Label for the tick speed slider. */
     private JLabel lblSpeedSlider;
     /** Instance of the SimulationModel, which holds the simulation state. */
-    private static SimulationModel model;
+    private static ConwayModel model;
     /**
      * Timer used to call update ticks at certain millisecond intervals (set by
      * sldrTickSpeed).
@@ -159,7 +159,7 @@ public class ConwayGUI extends JFrame {
         c.add(pnlControl, BorderLayout.SOUTH);
         tickTimer = new Timer(sldrTickSpeed.getValue(), new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent arg0) {
+            public void actionPerformed(ActionEvent ae) {
                 tick();
             }
         });
@@ -178,9 +178,9 @@ public class ConwayGUI extends JFrame {
                 && e.getY() >= 0 && temp.add(pFitToGrid)) {
             if (!cells.add(pFitToGrid)) {
                 cells.remove(pFitToGrid);
-                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = false;
+                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = 0;
             } else {
-                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = true;
+                model.getState()[e.getY() / gridDelta][e.getX() / gridDelta] = 1;
             }
             repaint();
         } // skips invalid cursor locations (from dragging outside window)
@@ -205,7 +205,7 @@ public class ConwayGUI extends JFrame {
         cells.clear();
         for (int y = 0; y < simulationHeight / gridDelta; y++) {
             for (int x = 0; x < simulationWidth / gridDelta; x++) {
-                if (model.getState()[y][x]) {
+                if (model.getState()[y][x] == 1) {
                     cells.add(new Point(x * gridDelta, y * gridDelta));
                 }
             }
@@ -222,6 +222,12 @@ public class ConwayGUI extends JFrame {
         repaint();
     }
 
+    /**
+     * Retrieves the filename to either save to or read from.
+     * @param chooserType Whether the selected file is to save to (False) or read from (True)
+     * @return String path to the selected file
+     * @throws FileNotFoundException if selected file cannot be located
+     */
     private String getFileName(boolean chooserType) throws FileNotFoundException {
         JFileChooser fc = new JFileChooser("./");
         fc.setApproveButtonText("Select");
@@ -318,8 +324,6 @@ public class ConwayGUI extends JFrame {
                         JOptionPane.showMessageDialog(ConwayGUI.this,
                                 "File either does not exist or is formatted incorrectly.",
                                 "File Error", JOptionPane.ERROR_MESSAGE);
-                    } catch (IllegalStateException ise) {
-                        // user canceled operation, do nothing
                     }
                 }
             });
@@ -342,7 +346,7 @@ public class ConwayGUI extends JFrame {
                     btnStop.setEnabled(false);
                     btnStart.setEnabled(true);
                     cells.clear();
-                    model = new SimulationModel(simulationWidth / gridDelta,
+                    model = new ConwayModel(simulationWidth / gridDelta,
                             simulationHeight / gridDelta);
                     ConwayGUI.this.repaint();
                 }
@@ -361,8 +365,6 @@ public class ConwayGUI extends JFrame {
                         JOptionPane.showMessageDialog(ConwayGUI.this,
                                 "Could not write to the desired file.", "File Error",
                                 JOptionPane.ERROR_MESSAGE);
-                    } catch (IllegalStateException ise) {
-                        // user canceled operation, do nothing
                     }
                 }
             });
@@ -372,7 +374,7 @@ public class ConwayGUI extends JFrame {
             sldrTickSpeed = new JSlider(0, TICKRATE_MAX);
             sldrTickSpeed.addChangeListener(new ChangeListener() {
                 @Override
-                public void stateChanged(ChangeEvent arg0) {
+                public void stateChanged(ChangeEvent ce) {
                     tickTimer.setDelay(sldrTickSpeed.getMaximum() + 1 - sldrTickSpeed.getValue());
                 }
             });
@@ -558,7 +560,7 @@ public class ConwayGUI extends JFrame {
     private static void createNewGUIInstance() {
         cells = Collections.synchronizedSet(new HashSet<Point>());
         temp = Collections.synchronizedSet(new HashSet<Point>());
-        model = new SimulationModel(simulationWidth / gridDelta, simulationHeight / gridDelta);
+        model = new ConwayModel(simulationWidth / gridDelta, simulationHeight / gridDelta);
         new ConwayGUI();
     }
 }
